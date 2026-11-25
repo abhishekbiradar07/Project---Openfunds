@@ -44,10 +44,14 @@ def is_valid_btc_address(address):
 
 # Custom function to check for similar campaigns
 def find_similar_campaigns(title, description):
+    """
+    Find similar campaigns using fast keyword-based matching.
+    Uses the optimized fast_similarity module for instant results.
+    """
     try:
-        from models.dl_similarity import get_similar_campaigns
-        similar = get_similar_campaigns(title, description)
-        return similar
+        from models.fast_similarity import get_similar_campaigns
+        similar = get_similar_campaigns(title, description, top_k=3, threshold=0.15)
+        return similar if similar else []
     except Exception as e:
         print(f"Error in similarity check: {e}")
         return []
@@ -154,26 +158,44 @@ if create_campaign:
             )
 
         if success:
-            st.success("Campaign created successfully! ")
-
-            # Train model and update embeddings
-            with st.spinner("Updating ML models..."):
-                try:
-                    from models.ml_predictor import train_model
-                    from models.dl_similarity import update_embeddings
-                    train_model()
-                    update_embeddings()
-                except Exception as e:
-                    st.error(f"Could not update models: {str(e)}")
+            st.success("✅ Campaign created successfully!")
             
-            # Predict campaign success
+            # Get AI insights instantly using fast predictor
             try:
-                from models.ml_predictor import predict_success
-                success_score, suggestion = predict_success(title, description, target_amount)
-                st.success(f"Predicted Success Likelihood: {success_score * 100:.2f}%")
-                st.markdown(f"**Feedback:** {suggestion}")
+                from models.fast_predictor import predict_success
+                success_score, ai_feedback = predict_success(title, description, target_amount)
+                
+                # Display AI insights prominently
+                st.markdown("### 🤖 AI Success Analysis")
+                
+                # Success score with color coding
+                col1, col2 = st.columns([1, 2])
+                with col1:
+                    score_color = "🟢" if success_score >= 0.7 else "🟡" if success_score >= 0.5 else "🔴"
+                    st.metric("Predicted Success Rate", f"{success_score*100:.1f}%", delta=None)
+                with col2:
+                    st.markdown(f"**{score_color} AI Feedback:**")
+                    st.info(ai_feedback)
+                
             except Exception as e:
-                st.error(f"Could not predict success: {str(e)}")
+                st.info("💡 Campaign created successfully!")
+            
+            # Campaign statistics
+            st.markdown("### 📊 Campaign Stats")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Target Amount", f"{target_amount:.2f} BTC")
+            with col2:
+                st.metric("Current Amount", "0.00 BTC")
+            with col3:
+                st.metric("Progress", "0%")
+            
+            st.markdown("---")
+            st.markdown("### 🚀 Next Steps")
+            st.markdown("1. **Share** your campaign with potential donors through social media")
+            st.markdown("2. **Monitor** donations on the View Campaigns page")
+            st.markdown("3. **Update** supporters on your progress regularly")
+            st.markdown("4. **Engage** with donors and thank them for their support")
 
             if st.button("View All Campaigns"):
                 st.switch_page("pages/3_View_Campaigns.py")
